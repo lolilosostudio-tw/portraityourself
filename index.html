@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自訂婚禮角色</title>
+    <style>
+        :root {
+            --primary-color: #d4a373;
+            --bg-color: #F2E1CD;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px 10px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            background: #fff;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            max-width: 500px; 
+            width: 100%;
+        }
+
+        /* 頁面頂部列 */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .header-bar h2 {
+            font-size: 18px;
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        /* 右上角完成按鈕 */
+        .btn-complete {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-complete:hover {
+            opacity: 0.9;
+        }
+
+        .btn-back {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #666;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 畫布區 (網頁預覽仍會給一點淺灰背景方便觀看，但下載出來會是透明的) */
+        .canvas-area {
+            position: relative;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            /* 如果你想讓預覽區也呈現棋盤格透明感，可以加上這兩行：*/
+            /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee), linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee); */
+            /* background-size: 20px 20px; background-position: 0 0, 10px 10px; */
+        }
+
+        .canvas-area img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        /* 控制面板區 */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #888;
+            transition: 0.3s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .category-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-btn {
+            padding: 8px 15px;
+            border: 1px solid var(--primary-color);
+            background: transparent;
+            color: var(--primary-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+
+        .cat-btn.active, .cat-btn:hover {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+            gap: 10px;
+            overflow-y: auto;
+            max-height: 250px;
+            padding-right: 5px;
+        }
+
+        .option-item {
+            border: 2px solid #eee;
+            border-radius: 8px;
+            padding: 15px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #fafafa;
+            font-size: 13px;
+        }
+
+        .option-item:hover {
+            border-color: var(--primary-color);
+        }
+
+        /* 第二頁：結果下載頁樣式 */
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .result-preview {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            object-fit: cover;
+            background-color: #f9f9f9; /* 下載結果預覽圖的背景 */
+        }
+
+        .action-box {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 統一改為主題色的下載按鈕 */
+        .btn-download {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-download:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div id="page-edit">
+            <div class="header-bar">
+                <h2>自訂婚禮角色</h2>
+                <button class="btn-complete" onclick="generateFinalImage()">完成</button>
+            </div>
+
+            <div class="canvas-area" id="canvas">
+                <img id="layer-base" crossorigin="anonymous" src="https://static.wixstatic.com/media/8c2ec7_1e2065e7313e45389a3a7280790886ae~mv2.png" alt="Base Image" style="z-index: 1;">
+                
+                <img id="layer-left-clothes" crossorigin="anonymous" src="" style="z-index: 2; display: none;">
+                <img id="layer-left-hair" crossorigin="anonymous" src="" style="z-index: 3; display: none;">
+                
+                <img id="layer-right-clothes" crossorigin="anonymous" src="" style="z-index: 2; display: none;">
+                <img id="layer-right-hair" crossorigin="anonymous" src="" style="z-index: 3; display: none;">
+            </div>
+
+            <div class="controls-area">
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-left" onclick="setPerson('left')">左邊的人物</button>
+                    <button class="tab-btn" id="tab-right" onclick="setPerson('right')">右邊的人物</button>
+                </div>
+
+                <div class="category-tabs">
+                    <button class="cat-btn active" id="cat-hair" onclick="setCategory('hair')">髮型</button>
+                    <button class="cat-btn" id="cat-clothes" onclick="setCategory('clothes')">服裝</button>
+                </div>
+
+                <div class="options-grid" id="options-container">
+                    </div>
+            </div>
+        </div>
+
+        <div id="page-result" style="display: none;">
+            <div class="header-bar">
+                <button class="btn-back" onclick="showEditPage()">← 返回修改</button>
+                <h2>我的婚禮角色</h2>
+                <div style="width: 70px;"></div> 
+            </div>
+
+            <div class="result-container">
+                <img id="final-image-preview" class="result-preview" src="" alt="Final Character">
+
+                <div class="action-box">
+                    <button class="btn-download" onclick="downloadImage()">儲存 / 下載圖片</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <canvas id="merge-canvas" style="display: none;"></canvas>
+
+    <script>
+        const itemsData = {
+            hair: [
+                { id: 'none', name: '無/預設', leftSrc: '', rightSrc: '' },
+                { id: 'short1', name: '俐落短髮', leftSrc: 'images/left_hair_short.png', rightSrc: 'images/right_hair_short.png' },
+                { id: 'long1', name: '浪漫長髮', leftSrc: 'images/left_hair_long.png', rightSrc: 'images/right_hair_long.png' },
+                { id: 'curly', name: '俏皮捲髮', leftSrc: 'images/left_hair_curly.png', rightSrc: 'images/right_hair_curly.png' }
+            ],
+            clothes: [
+                { id: 'none', name: '無/預設', leftSrc: '', rightSrc: '' },
+                { id: 'suit_black', name: '黑西裝', leftSrc: 'images/left_suit_black.png', rightSrc: 'images/right_suit_black.png' },
+                { id: 'suit_white', name: '白西裝', leftSrc: 'images/left_suit_white.png', rightSrc: 'images/right_suit_white.png' },
+                { id: 'dress_a', name: 'A字婚紗', leftSrc: 'images/left_dress_a.png', rightSrc: 'images/right_dress_a.png' },
+                { id: 'dress_fish', name: '魚尾婚紗', leftSrc: 'images/left_dress_fish.png', rightSrc: 'images/right_dress_fish.png' }
+            ]
+        };
+
+        let currentPerson = 'left'; 
+        let currentCategory = 'hair';
+        let finalImageUrl = ''; 
+
+        function init() {
+            renderOptions();
+        }
+
+        function setPerson(person) {
+            currentPerson = person;
+            document.getElementById('tab-left').classList.toggle('active', person === 'left');
+            document.getElementById('tab-right').classList.toggle('active', person === 'right');
+            renderOptions();
+        }
+
+        function setCategory(category) {
+            currentCategory = category;
+            document.getElementById('cat-hair').classList.toggle('active', category === 'hair');
+            document.getElementById('cat-clothes').classList.toggle('active', category === 'clothes');
+            renderOptions();
+        }
+
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = ''; 
+
+            const options = itemsData[currentCategory];
+
+            options.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.innerText = item.name;
+                div.onclick = () => applyItem(item);
+                container.appendChild(div);
+            });
+        }
+
+        function applyItem(item) {
+            const layerId = `layer-${currentPerson}-${currentCategory}`;
+            const imgElement = document.getElementById(layerId);
+            const imagePath = currentPerson === 'left' ? item.leftSrc : item.rightSrc;
+
+            if (imagePath === '') {
+                imgElement.style.display = 'none';
+                imgElement.src = '';
+            } else {
+                imgElement.src = imagePath;
+                imgElement.style.display = 'block';
+            }
+        }
+
+        function showEditPage() {
+            document.getElementById('page-result').style.display = 'none';
+            document.getElementById('page-edit').style.display = 'block';
+        }
+
+        function generateFinalImage() {
+            const canvas = document.getElementById('merge-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 800;
+            canvas.height = 800;
+
+            // 核心修改：清除畫布內容，確保背景是完全透明的
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const layers = [
+                document.getElementById('layer-base'),
+                document.getElementById('layer-left-clothes'),
+                document.getElementById('layer-left-hair'),
+                document.getElementById('layer-right-clothes'),
+                document.getElementById('layer-right-hair')
+            ];
+
+            layers.forEach(img => {
+                if (img && img.style.display !== 'none' && img.src) {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+            });
+
+            try {
+                // 將圖片匯出為支援透明通道的 image/png
+                finalImageUrl = canvas.toDataURL('image/png');
+                
+                document.getElementById('final-image-preview').src = finalImageUrl;
+
+                document.getElementById('page-edit').style.display = 'none';
+                document.getElementById('page-result').style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                alert('圖片合成失敗，可能因跨網域圖片限制(CORS)。請確保所有配件圖片皆與網頁同網域或設定正確。');
+            }
+        }
+
+        function downloadImage() {
+            if (!finalImageUrl) return;
+            const a = document.createElement('a');
+            a.href = finalImageUrl;
+            a.download = 'my-wedding-character.png'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        init();
+    </script>
+</body>
+</html>
