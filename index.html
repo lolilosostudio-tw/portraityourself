@@ -77,7 +77,7 @@
             cursor: pointer;
         }
 
-        /* 畫布區 (網頁預覽仍會給一點淺灰背景方便觀看，但下載出來會是透明的) */
+        /* 畫布區 */
         .canvas-area {
             position: relative;
             width: 100%;
@@ -87,9 +87,6 @@
             border-radius: 10px;
             overflow: hidden;
             background-color: #f9f9f9;
-            /* 如果你想讓預覽區也呈現棋盤格透明感，可以加上這兩行：*/
-            /* background-image: linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee), linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%, #eee); */
-            /* background-size: 20px 20px; background-position: 0 0, 10px 10px; */
         }
 
         .canvas-area img {
@@ -161,29 +158,56 @@
             color: #fff;
         }
 
+        /* ======== 修改過的網格與預覽按鈕樣式 ======== */
         .options-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
             overflow-y: auto;
             max-height: 250px;
-            padding-right: 5px;
+            padding: 5px;
         }
 
         .option-item {
             border: 2px solid #eee;
-            border-radius: 8px;
-            padding: 15px 5px;
+            border-radius: 10px;
+            padding: 4px;
             text-align: center;
             cursor: pointer;
             transition: 0.2s;
             background: #fafafa;
-            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1; /* 強制變成正方形 */
+            overflow: hidden;
+            position: relative;
         }
 
         .option-item:hover {
-            border-color: var(--primary-color);
+            border-color: #e0b68d;
         }
+
+        /* 選中時的高亮狀態 */
+        .option-item.active {
+            border-color: var(--primary-color);
+            background: #fff9f2;
+            box-shadow: 0 0 0 2px rgba(212, 163, 115, 0.3);
+        }
+
+        .option-item img.thumb-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 讓縮圖填滿方塊 */
+            border-radius: 6px;
+        }
+
+        .option-item span.thumb-text {
+            font-size: 13px;
+            color: #666;
+            font-weight: bold;
+        }
+        /* ========================================= */
 
         /* 第二頁：結果下載頁樣式 */
         .result-container {
@@ -199,7 +223,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             object-fit: cover;
-            background-color: #f9f9f9; /* 下載結果預覽圖的背景 */
+            background-color: #f9f9f9;
         }
 
         .action-box {
@@ -209,7 +233,6 @@
             gap: 12px;
         }
 
-        /* 統一改為主題色的下載按鈕 */
         .btn-download {
             background-color: var(--primary-color);
             color: white;
@@ -241,7 +264,7 @@
             </div>
 
             <div class="canvas-area" id="canvas">
-                 <img id="layer-base"src="images/BaseImage.png" alt="Base Image" style="z-index: 1;">
+                 <img id="layer-base" src="images/BaseImage.png" alt="Base Image" style="z-index: 1;">
                 <img id="layer-left-clothes"  src="" style="z-index: 2; display: none;">
                 <img id="layer-left-hair" src="" style="z-index: 3; display: none;">
                 
@@ -286,25 +309,33 @@
     <canvas id="merge-canvas" style="display: none;"></canvas>
 
     <script>
+        // ======== 核心修改：加入 thumb 縮圖屬性 ========
+        // 請準備約 100x100 像素的縮圖放到 images 資料夾中
         const itemsData = {
             hair: [
-                { id: 'none', name: '無/預設', leftSrc: '', rightSrc: '' },
-                { id: 'short1', name: '俐落短髮', leftSrc: 'images/left_hair_short.png', rightSrc: 'images/right_hair_short.png' },
-                { id: 'long1', name: '浪漫長髮', leftSrc: 'images/left_hair_long.png', rightSrc: 'images/right_hair_long.png' },
-                { id: 'curly', name: '俏皮捲髮', leftSrc: 'images/left_hair_curly.png', rightSrc: 'images/right_hair_curly.png' }
+                { id: 'none', name: '無/預設', thumb: '', leftSrc: '', rightSrc: '' },
+                { id: 'short1', name: '俐落短髮', thumb: 'images/thumb_hair_short.png', leftSrc: 'images/left_hair_short.png', rightSrc: 'images/right_hair_short.png' },
+                { id: 'long1', name: '浪漫長髮', thumb: 'images/thumb_hair_long.png', leftSrc: 'images/left_hair_long.png', rightSrc: 'images/right_hair_long.png' },
+                { id: 'curly', name: '俏皮捲髮', thumb: 'images/thumb_hair_curly.png', leftSrc: 'images/left_hair_curly.png', rightSrc: 'images/right_hair_curly.png' }
             ],
             clothes: [
-                { id: 'none', name: '無/預設', leftSrc: '', rightSrc: '' },
-                { id: 'suit_black', name: '黑西裝', leftSrc: 'images/left_suit_black.png', rightSrc: 'images/right_suit_black.png' },
-                { id: 'suit_white', name: '白西裝', leftSrc: 'images/left_suit_white.png', rightSrc: 'images/right_suit_white.png' },
-                { id: 'dress_a', name: 'A字婚紗', leftSrc: 'images/left_dress_a.png', rightSrc: 'images/right_dress_a.png' },
-                { id: 'dress_fish', name: '魚尾婚紗', leftSrc: 'images/left_dress_fish.png', rightSrc: 'images/right_dress_fish.png' }
+                { id: 'none', name: '無/預設', thumb: '', leftSrc: '', rightSrc: '' },
+                { id: 'suit_black', name: '黑西裝', thumb: 'images/thumb_suit_black.png', leftSrc: 'images/left_suit_black.png', rightSrc: 'images/right_suit_black.png' },
+                { id: 'suit_white', name: '白西裝', thumb: 'images/thumb_suit_white.png', leftSrc: 'images/left_suit_white.png', rightSrc: 'images/right_suit_white.png' },
+                { id: 'dress_a', name: 'A字婚紗', thumb: 'images/thumb_dress_a.png', leftSrc: 'images/left_dress_a.png', rightSrc: 'images/right_dress_a.png' },
+                { id: 'dress_fish', name: '魚尾婚紗', thumb: 'images/thumb_dress_fish.png', leftSrc: 'images/left_dress_fish.png', rightSrc: 'images/right_dress_fish.png' }
             ]
         };
 
         let currentPerson = 'left'; 
         let currentCategory = 'hair';
         let finalImageUrl = ''; 
+
+        // 紀錄目前的選擇，用來給按鈕加上 active 高亮框
+        let selectedStyles = {
+            left: { hair: 'none', clothes: 'none' },
+            right: { hair: 'none', clothes: 'none' }
+        };
 
         function init() {
             renderOptions();
@@ -329,17 +360,41 @@
             container.innerHTML = ''; 
 
             const options = itemsData[currentCategory];
+            const currentSelectedId = selectedStyles[currentPerson][currentCategory];
 
             options.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'option-item';
-                div.innerText = item.name;
+                
+                // 如果是目前選中的樣式，加上高亮樣式
+                if (item.id === currentSelectedId) {
+                    div.classList.add('active');
+                }
+
+                // ======== 核心修改：判斷顯示圖片或文字 ========
+                if (item.thumb) {
+                    const img = document.createElement('img');
+                    img.className = 'thumb-img';
+                    img.src = item.thumb;
+                    img.alt = item.name;
+                    div.appendChild(img);
+                } else {
+                    // 若沒有縮圖(如「無」)，則顯示文字
+                    const span = document.createElement('span');
+                    span.className = 'thumb-text';
+                    span.innerText = item.name;
+                    div.appendChild(span);
+                }
+
                 div.onclick = () => applyItem(item);
                 container.appendChild(div);
             });
         }
 
         function applyItem(item) {
+            // 更新狀態紀錄
+            selectedStyles[currentPerson][currentCategory] = item.id;
+
             const layerId = `layer-${currentPerson}-${currentCategory}`;
             const imgElement = document.getElementById(layerId);
             const imagePath = currentPerson === 'left' ? item.leftSrc : item.rightSrc;
@@ -351,6 +406,9 @@
                 imgElement.src = imagePath;
                 imgElement.style.display = 'block';
             }
+
+            // 重新渲染下方的選單，確保點選的框框外圍亮起
+            renderOptions();
         }
 
         function showEditPage() {
@@ -365,7 +423,6 @@
             canvas.width = 800;
             canvas.height = 800;
 
-            // 核心修改：清除畫布內容，確保背景是完全透明的
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const layers = [
@@ -383,11 +440,8 @@
             });
 
             try {
-                // 將圖片匯出為支援透明通道的 image/png
                 finalImageUrl = canvas.toDataURL('image/png');
-                
                 document.getElementById('final-image-preview').src = finalImageUrl;
-
                 document.getElementById('page-edit').style.display = 'none';
                 document.getElementById('page-result').style.display = 'block';
             } catch (error) {
